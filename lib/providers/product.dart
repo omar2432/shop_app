@@ -3,8 +3,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-import '../models/http_exception.dart';
-
 class Product with ChangeNotifier {
   final String id;
   final String title;
@@ -22,20 +20,28 @@ class Product with ChangeNotifier {
     this.isFavorite = false,
   });
 
+  void _setFavValue(bool newValue) {
+    isFavorite = newValue;
+    notifyListeners();
+  }
+
   Future<void> toggleFavoriteStatus() async {
+    final oldStatus = isFavorite;
     isFavorite = !isFavorite;
     notifyListeners();
-
-    final url = 'https://fireeats-434d3.firebaseio.com/products/$id.json';
-
-    final response =
-        await http.patch(url, body: json.encode({"isFavorite": isFavorite}));
-
-    if (response.statusCode >= 400) {
-      isFavorite = !isFavorite;
-      notifyListeners();
-
-      throw HttpException('Could not delete product.');
+    final url = 'https://flutter-update.firebaseio.com/products/$id.json';
+    try {
+      final response = await http.patch(
+        url,
+        body: json.encode({
+          'isFavorite': isFavorite,
+        }),
+      );
+      if (response.statusCode >= 400) {
+        _setFavValue(oldStatus);
+      }
+    } catch (error) {
+      _setFavValue(oldStatus);
     }
   }
 }
